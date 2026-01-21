@@ -1,5 +1,5 @@
 DO $$ BEGIN
-CREATE TYPE unit_type AS ENUM ('G', 'KG', 'L', 'ML', 'PCS');
+CREATE TYPE unit_type AS ENUM ('PCS', 'KG', 'L');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
