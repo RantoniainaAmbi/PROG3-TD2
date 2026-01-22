@@ -1,27 +1,34 @@
 package com.java;
 
+import com.java.*;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+
 public class Main {
     public static void main(String[] args) {
         DataRetriever repo = new DataRetriever();
-        int[] idsToTest = {1, 2, 3, 4, 5};
 
-        System.out.println("--- DÉBUT DES TESTS (Many-to-Many) ---");
+        System.out.println("--- TD4 : Gestion des Stocks ---");
 
-        for (int id : idsToTest) {
+        Instant targetDate = LocalDateTime.of(2024, 1, 6, 12, 0)
+                .atZone(ZoneId.systemDefault())
+                .toInstant();
+        System.out.println("Calcul du stock à la date : " + targetDate);
+
+        int[] ids = {1, 2, 3, 4, 5};
+
+        for (int id : ids) {
             try {
-                Dish dish = repo.findDishById(id);
-                System.out.println("Plat : " + dish.getName());
+                Ingredient ing = repo.findIngredientById(id);
+                Double stock = ing.getStockValueAt(targetDate);
 
-                System.out.println(" - Coût production : " + dish.getDishCost());
-
-                System.out.println(" - Marge brute : " + dish.getGrossMargin());
-
-            } catch (RuntimeException e) {
-                System.out.println(" - " + e.getMessage());
+                System.out.println("Ingrédient : " + ing.getName() +
+                        " | Stock calculé : " + stock +
+                        " " + (ing.getStockMovementList().isEmpty() ? "" : ing.getStockMovementList().get(0).getValue().getUnit()));
             } catch (Exception e) {
-                System.out.println(" - Erreur technique : " + e.getMessage());
+                System.out.println("Erreur ID " + id + ": " + e.getMessage());
             }
-            System.out.println("-----------------------------------");
         }
     }
 }

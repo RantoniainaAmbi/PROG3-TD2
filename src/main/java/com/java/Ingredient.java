@@ -1,5 +1,8 @@
 package com.java;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class Ingredient {
@@ -7,12 +10,21 @@ public class Ingredient {
     private String name;
     private CategoryEnum category;
     private Double price;
+    private List<StockMovement> stockMovementList = new ArrayList<>();
 
     public Ingredient(String name, Integer id, CategoryEnum category, Double price) {
         this.name = name;
         this.id = id;
         this.category = category;
         this.price = price;
+    }
+
+    public Ingredient(Integer id, String name, CategoryEnum category, Double price, List<StockMovement> stockMovementList) {
+        this.id = id;
+        this.name = name;
+        this.category = category;
+        this.price = price;
+        this.stockMovementList = stockMovementList;
     }
 
     public Ingredient() {
@@ -58,5 +70,34 @@ public class Ingredient {
                 ", category=" + category +
                 ", price=" + price +
                 '}';
+    }
+
+    public List<StockMovement> getStockMovementList() {
+        return stockMovementList;
+    }
+
+    public void setStockMovementList(List<StockMovement> stockMovementList) {
+        this.stockMovementList = stockMovementList;
+    }
+
+    public Double getStockValueAt(Instant t) {
+        if (stockMovementList == null || stockMovementList.isEmpty()) {
+            return 0.0;
+        }
+
+        return stockMovementList.stream()
+                .filter(m -> m.getCreationDatetime() != null && !m.getCreationDatetime().isAfter(t))
+                .mapToDouble(m -> {
+                    double qty = (m.getValue() != null && m.getValue().getQuantity() != null)
+                            ? m.getValue().getQuantity()
+                            : 0.0;
+
+                    if (m.getType() == MovementTypeEnum.IN) {
+                        return qty;
+                    } else {
+                        return -qty;
+                    }
+                })
+                .sum();
     }
 }
