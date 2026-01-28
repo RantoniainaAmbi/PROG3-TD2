@@ -80,24 +80,17 @@ public class Ingredient {
         this.stockMovementList = stockMovementList;
     }
 
-    public Double getStockValueAt(Instant t) {
-        if (stockMovementList == null || stockMovementList.isEmpty()) {
-            return 0.0;
+    public double getStockValueAt(Instant instant) {
+        double total = 0.0;
+        for (StockMovement mov : this.stockMovementList) {
+            double qtyInKg = UnitConvert.toKg(this.name, mov.getValue().getQuantity(), mov.getValue().getUnit());
+
+            if (mov.getType() == MovementTypeEnum.IN) {
+                total += qtyInKg;
+            } else {
+                total -= qtyInKg;
+            }
         }
-
-        return stockMovementList.stream()
-                .filter(m -> m.getCreationDatetime() != null && !m.getCreationDatetime().isAfter(t))
-                .mapToDouble(m -> {
-                    double qty = (m.getValue() != null && m.getValue().getQuantity() != null)
-                            ? m.getValue().getQuantity()
-                            : 0.0;
-
-                    if (m.getType() == MovementTypeEnum.IN) {
-                        return qty;
-                    } else {
-                        return -qty;
-                    }
-                })
-                .sum();
+        return total;
     }
 }
