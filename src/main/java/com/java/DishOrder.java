@@ -11,6 +11,10 @@ public class DishOrder {
         this.quantity = quantity;
     }
 
+    public DishOrder() {
+
+    }
+
     public int getId() {
         return id;
     }

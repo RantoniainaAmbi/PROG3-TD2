@@ -16,6 +16,10 @@ public class Order {
         this.dishOrders = dishOrders;
     }
 
+    public Order() {
+
+    }
+
     public int getId() {
         return id;
     }
@@ -32,10 +36,6 @@ public class Order {
         this.reference = reference;
     }
 
-    public Instant getCreationDateTime() {
-        return creationDateTime;
-    }
-
     public void setCreationDateTime(Instant creationDateTime) {
         this.creationDateTime = creationDateTime;
     }
@@ -46,5 +46,30 @@ public class Order {
 
     public void setDishOrders(List<DishOrder> dishOrders) {
         this.dishOrders = dishOrders;
+    }
+
+    public Double getTotalAmountWithoutVAT() {
+        return dishOrders.stream()
+                .mapToDouble(dishOrder -> {
+                    Double price = dishOrder.getDish().getPrice();
+                    if (price == null) {
+                        throw new RuntimeException("Le plat " + dishOrder.getDish().getName() + " n'a pas de prix de vente défini.");
+                    }
+                    return price * dishOrder.getQuantity();
+                })
+                .sum();
+    }
+
+    public Double getTotalAmountWithVAT() {
+        return getTotalAmountWithoutVAT() * 1.2;
+    }
+
+    public Instant getCreationDatetime() {
+        return creationDateTime;
+    }
+
+    public void setCreationDatetime(Instant now) {
+        this.creationDateTime = creationDateTime;
+
     }
 }

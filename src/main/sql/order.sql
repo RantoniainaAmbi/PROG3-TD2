@@ -1,13 +1,14 @@
-CREATE TABLE order(
-    id serial primary key ,
-    reference varchar,
-    creation_datetime timestamp
+CREATE SEQUENCE IF NOT EXISTS order_ref_seq START 1;
+
+CREATE TABLE "order" (
+    id SERIAL PRIMARY KEY,
+    reference VARCHAR(8) UNIQUE NOT NULL,
+    creation_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE dish_order(
-    id serial primary key ,
-    id_order int REFERENCES order(id),
-    id_dish int REFERENCES dish(id),
-    quantity int
+CREATE TABLE dish_order (
+    id SERIAL PRIMARY KEY,
+    id_order INT REFERENCES "order"(id),
+    id_dish INT REFERENCES dish(id),
+    quantity INT NOT NULL
 );
-

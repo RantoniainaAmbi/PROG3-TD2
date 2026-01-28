@@ -1,34 +1,66 @@
 package com.java;
 
-import com.java.*;
+import java.sql.SQLException;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
         DataRetriever repo = new DataRetriever();
 
-        System.out.println("--- TD4 : Gestion des Stocks ---");
+        System.out.println("=== TEST 1 : Création d'une commande valide ===");
+        try {
+            Dish margherita = repo.findDishById(1);
 
-        Instant targetDate = LocalDateTime.of(2024, 1, 6, 12, 0)
-                .atZone(ZoneId.systemDefault())
-                .toInstant();
-        System.out.println("Calcul du stock à la date : " + targetDate);
+            Order newOrder = new Order();
+            newOrder.setCreationDatetime(Instant.now());
 
-        int[] ids = {1, 2, 3, 4, 5};
+            List<DishOrder> items = new ArrayList<>();
+            DishOrder item1 = new DishOrder();
+            item1.setDish(margherita);
+            item1.setQuantity(2);
+            items.add(item1);
 
-        for (int id : ids) {
-            try {
-                Ingredient ing = repo.findIngredientById(id);
-                Double stock = ing.getStockValueAt(targetDate);
+            newOrder.setDishOrders(items);
 
-                System.out.println("Ingrédient : " + ing.getName() +
-                        " | Stock calculé : " + stock +
-                        " " + (ing.getStockMovementList().isEmpty() ? "" : ing.getStockMovementList().get(0).getValue().getUnit()));
-            } catch (Exception e) {
-                System.out.println("Erreur ID " + id + ": " + e.getMessage());
-            }
+            Order saved = repo.saveOrder(newOrder);
+            System.out.println("Commande créée avec succès !");
+            System.out.println("Référence générée : " + saved.getReference());
+            System.out.println("Montant HT : " + saved.getTotalAmountWithoutVAT() + "€");
+            System.out.println("Montant TTC : " + saved.getTotalAmountWithVAT() + "€");
+
+        } catch (Exception e) {
+            System.err.println("Erreur Test 1 : " + e.getMessage());
+        }
+
+        System.out.println("\n=== TEST 2 : Recherche par référence ===");
+        try {
+            Order found = repo.findOrderByReference("ORD00001");
+            System.out.println("Commande trouvée : " + found.getReference());
+            System.out.println("Date : " + found.getCreationDatetime());
+            found.getDishOrders().forEach(doReq ->
+                    System.out.println("- " + doReq.getQuantity() + "x " + doReq.getDish().getName())
+            );
+        } catch (Exception e) {
+            System.err.println("Erreur Test 2 : " + e.getMessage());
+        }
+
+        System.out.println("\n=== TEST 3 : Stock insuffisant (Doit lever une exception) ===");
+        try {
+            Dish deluxe = repo.findDishById(2);
+            Order bigOrder = new Order();
+            bigOrder.setCreationDatetime(Instant.now());
+
+            DishOrder item = new DishOrder();
+            item.setDish(deluxe);
+            item.setQuantity(1000);
+
+            bigOrder.setDishOrders(List.of(item));
+            repo.saveOrder(bigOrder);
+
+        } catch (RuntimeException e) {
+            System.out.println("Succès du test d'erreur : " + e.getMessage());
         }
     }
 }
