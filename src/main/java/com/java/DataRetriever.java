@@ -424,21 +424,19 @@ public class DataRetriever {
     }
 
     private void checkStockAvailability(Connection conn, Order order) throws SQLException {
-
         for (DishOrder dishOrder : order.getDishOrders()) {
-            Dish dish = dishOrder.getDish();
+            for (DishIngredient di : dishOrder.getDish().getDishIngredients()) {
+                double neededRaw = di.getQuantityRequired() * dishOrder.getQuantity();
 
-            if(dish.getDishIngredients() == null) {
-                continue;
-            }
+                double neededInKg = UnitConvert.toKg(
+                        di.getIngredient().getName(),
+                        neededRaw,
+                        di.getUnit()
+                );
 
-            for (DishIngredient di : dish.getDishIngredients()) {
-                double totalNeeded = di.getQuantityRequired() * dishOrder.getQuantity();
+                double currentStockInKg = di.getIngredient().getStockValueAt(Instant.now());
 
-
-                double currentStock = di.getIngredient().getStockValueAt(Instant.now());
-
-                if (currentStock < totalNeeded) {
+                if (currentStockInKg < neededInKg) {
                     throw new RuntimeException("Stock insuffisant pour l'ingrédient : " + di.getIngredient().getName());
                 }
             }
