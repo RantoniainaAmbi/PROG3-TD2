@@ -1,20 +1,41 @@
 package com.java;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 
 public class Main {
     public static void main(String[] args) {
-        System.out.println("=== Vérification des Stocks Final (Objectif KG) ===");
+        DataRetriever dr = new DataRetriever();
 
-        printResult("Laitue", 5.0, 2, UnitEnum.PCS);
-        printResult("Tomate", 4.0, 5, UnitEnum.PCS);
-        printResult("Poulet", 10.0, 4, UnitEnum.PCS);
-        printResult("Chocolat", 3.0, 1, UnitEnum.L);
-        printResult("Beurre", 2.5, 1, UnitEnum.L);
-    }
+        try {
+            RestaurantTable table1 = new RestaurantTable(1, 1);
 
-    private static void printResult(String name, double initial, double outQty, UnitEnum unit) {
-        double outInKg = UnitConvert.toKg(name, outQty, unit);
-        double finalStock = initial - outInKg;
-        System.out.println(name + " : " + initial + " - " + outInKg + " = " + finalStock + " KG");
+            Instant debut = Instant.now();
+            Instant fin = debut.plus(1, ChronoUnit.HOURS);
+            TableOrder tableOrder = new TableOrder(table1, debut, fin);
+
+            Order o = new Order();
+            o.setReference("TEST-CHECK");
+            o.setTableOrder(tableOrder);
+            o.setDishOrders(new ArrayList<>());
+            o.setCreationDatetime(Instant.now());
+
+            System.out.println("--- TEST : DISPONIBILITÉ TABLE ---");
+            System.out.println("Tentative sur la Table 1 à " + debut);
+
+            dr.saveOrder(o);
+
+        } catch (RuntimeException e) {
+            System.out.println("\n[RÉSULTAT ATTENDU]");
+            if (e.getMessage().contains("n'est pas disponible")) {
+                System.out.println("✅ SUCCÈS : Le conflit a été détecté AVANT l'erreur SQL.");
+                System.out.println("MESSAGE : " + e.getMessage());
+            } else {
+                System.out.println("❌ ERREUR persistante : " + e.getMessage());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
