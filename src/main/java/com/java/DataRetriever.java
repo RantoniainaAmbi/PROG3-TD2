@@ -3,7 +3,9 @@ package com.java;
 import java.sql.*;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class DataRetriever {
@@ -315,5 +317,132 @@ public class DataRetriever {
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.executeQuery();
         }
+    }
+
+    public StockValue getStockValueAt(Instant t, Integer ingredientId) {
+        Connection connection = null;
+        String sql = """
+            SELECT unit, 
+                   SUM(CASE WHEN type = 'OUT' THEN -quantity ELSE quantity END) as actual_quantity
+            FROM stock_movement
+            WHERE id_ingredient = ? AND creation_datetime <= ?
+            GROUP BY unit
+            """;
+
+        try {
+            connection = new DBConnection().getConnection();
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setInt(1, ingredientId);
+                ps.setTimestamp(2, Timestamp.from(t));
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        double quantity = rs.getDouble("actual_quantity");
+                        String unitStr = rs.getString("unit");
+
+                        UnitEnum unit = UnitEnum.valueOf(unitStr);
+
+                        return new StockValue(quantity, unit);
+                    } else {
+                        return new StockValue(0.0, UnitEnum.KG);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public Double getDishCost(Integer dishId) {
+        Connection connection = null;
+        String sql = """
+            SELECT SUM(di.quantity_required * i.price) AS total_cost
+            FROM dish_ingredient di
+            JOIN ingredient i ON di.id_ingredient = i.id
+            WHERE di.id_dish = ?
+            """;
+
+        try {
+            connection = new DBConnection().getConnection();
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setInt(1, dishId);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getDouble("total_cost");
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return 0.0;
+    }
+
+    public Double getGrossMargin(Integer dishId) {
+        Connection connection = null;
+        String sql = """
+            SELECT 
+                d.price - (
+                    SELECT SUM(di.quantity_required * i.price)
+                    FROM dish_ingredient di
+                    JOIN ingredient i ON di.id_ingredient = i.id
+                    WHERE di.id_dish = d.id
+                ) AS gross_margin
+            FROM dish d
+            WHERE d.id = ?
+            """;
+
+        try {
+            connection = new DBConnection().getConnection();
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setInt(1, dishId);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getDouble("gross_margin");
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return 0.0;
+    }
+
+    public Map<Instant, Double> getStockEvolution(Integer ingredientId, String periodicity, Instant start, Instant end) {
+        Map<Instant, Double> evolution = new LinkedHashMap<>();
+        Connection connection = null;
+
+        String sql = """
+            SELECT date_trunc(?, creation_datetime) AS period, 
+                   SUM(CASE WHEN type = 'OUT' THEN -quantity ELSE quantity END) AS delta
+            FROM stock_movement
+            WHERE id_ingredient = ? AND creation_datetime BETWEEN ? AND ?
+            GROUP BY period
+            ORDER BY period
+            """;
+
+        try {
+            connection = new DBConnection().getConnection();
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, periodicity);
+                ps.setInt(2, ingredientId);
+                ps.setTimestamp(3, Timestamp.from(start));
+                ps.setTimestamp(4, Timestamp.from(end));
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        evolution.put(
+                                rs.getTimestamp("period").toInstant(),
+                                rs.getDouble("delta")
+                        );
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return evolution;
     }
 }

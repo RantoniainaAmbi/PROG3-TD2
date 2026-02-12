@@ -4,31 +4,54 @@ import com.java.*;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Map;
 
 public class Main {
-    public static void main(String[] args) {
-        DataRetriever repo = new DataRetriever();
+        public static void main(String[] args) {
+            DataRetriever dr = new DataRetriever();
 
-        System.out.println("--- TD4 : Gestion des Stocks ---");
+            Integer idIngredient = 1;
+            Instant now = Instant.now();
 
-        Instant targetDate = LocalDateTime.of(2024, 1, 6, 12, 0)
-                .atZone(ZoneId.systemDefault())
-                .toInstant();
-        System.out.println("Calcul du stock à la date : " + targetDate);
+            System.out.println("--- TEST COMPARAISON JAVA vs SQL (TD5) ---");
 
-        int[] ids = {1, 2, 3, 4, 5};
 
-        for (int id : ids) {
-            try {
-                Ingredient ing = repo.findIngredientById(id);
-                Double stock = ing.getStockValueAt(targetDate);
+            Ingredient ingredient = dr.findIngredientById(idIngredient);
+            double stockJava = ingredient.getStockValueAt(now);
 
-                System.out.println("Ingrédient : " + ing.getName() +
-                        " | Stock calculé : " + stock +
-                        " " + (ing.getStockMovementList().isEmpty() ? "" : ing.getStockMovementList().get(0).getValue().getUnit()));
-            } catch (Exception e) {
-                System.out.println("Erreur ID " + id + ": " + e.getMessage());
+            System.out.println("Stock calculé par Java : " + stockJava);
+
+
+            StockValue stockSQL = dr.getStockValueAt(now, idIngredient);
+
+            System.out.println("Stock calculé par SQL  : " + stockSQL.getQuantity() + " " + stockSQL.getUnit());
+
+
+            if (stockJava == stockSQL.getQuantity()) {
+                System.out.println(" SUCCÈS : Les résultats sont identiques !");
+            } else {
+                System.out.println(" DIFFÉRENCE : Vérifiez vos données.");
+                System.out.println("Note : Sans UnitConvert, assurez-vous que tous les mouvements de cet ingrédient ont la même unité (ex: tout en KG).");
             }
+
+            Integer idPlat = 1;
+            Double cout = dr.getDishCost(idPlat);
+            Double marge = dr.getGrossMargin(idPlat);
+
+            System.out.println("Coût de revient du plat : " + cout);
+            System.out.println("Marge brute du plat     : " + marge);
+            Instant debut = Instant.parse("2026-01-01T00:00:00Z");
+            Instant fin = Instant.parse("2026-01-31T23:59:59Z");
+
+            System.out.println("\n--- TEST 2 : COMPARAISON DES PÉRIODICITÉS ---");
+            Instant start = Instant.parse("2026-01-01T00:00:00Z");
+            Instant end = Instant.now();
+
+            System.out.println("Évolution par JOUR :");
+            dr.getStockEvolution(1, "day", start, end).forEach((d, v) -> System.out.println(d + " : " + v));
+
+            System.out.println("\nÉvolution par MOIS :");
+            dr.getStockEvolution(1, "month", start, end).forEach((d, v) -> System.out.println(d + " : " + v));
+
         }
-    }
 }
